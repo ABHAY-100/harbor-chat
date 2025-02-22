@@ -29,7 +29,7 @@ function ChatClient({ roomId }: { roomId: string }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const myUserId = sessionStorage.getItem('keyedin_publickey');
-
+  
   useEffect(() => {
     // Register on connect with roomId
 
