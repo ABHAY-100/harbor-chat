@@ -94,7 +94,7 @@ function ChatClient({ roomId }: { roomId: string }) {
   /** Auto-scroll chat to bottom when new messages arrive */
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      document.getElementById("scrollDiv")?.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
 
@@ -131,7 +131,7 @@ function ChatClient({ roomId }: { roomId: string }) {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col h-[calc(80vh-140px)]">
-            <ScrollArea className="flex-1 pr-4" ref={scrollRef}>
+            <ScrollArea className="flex-1 pr-4" >
               <AnimatePresence initial={false}>
                 <div className="space-y-4 py-4">
                   {messages.map((msg) => (
@@ -144,10 +144,14 @@ function ChatClient({ roomId }: { roomId: string }) {
                         msg.sender === "user" ? "justify-end" : "justify-start"
                       }`}
                     >
-                      <div className="flex items-end gap-2 max-w-[80%]">
-                        {msg.sender === "other" && (
+                      <div className={`flex items-end gap-2 max-w-[80%] ${msg.sender === "other" ? "flex-row" : "flex-row-reverse"}`}>
+                        {msg.sender === "other"  ? (
                           <Avatar className="w-6 h-6">
                             <AvatarFallback>U2</AvatarFallback>
+                          </Avatar>
+                        ) : (
+                          <Avatar className="w-6 h-6">
+                            <AvatarFallback>U1</AvatarFallback>
                           </Avatar>
                         )}
                         <div
@@ -170,6 +174,7 @@ function ChatClient({ roomId }: { roomId: string }) {
                   ))}
                 </div>
               </AnimatePresence>
+            <div id="scrollDiv" ref={scrollRef}></div>
             </ScrollArea>
 
             <div className="border-t pt-4 mt-auto">
