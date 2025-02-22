@@ -8,14 +8,16 @@ import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
 import { QRCodeSVG } from 'qrcode.react'  // Changed this line
-
+import { createContext } from "vm"
+export const RoomContext = createContext()
 export default function CreateRoomPage() {
   const router = useRouter()
   const [roomCode, setRoomCode] = useState("")
   const [copying, setCopying] = useState(false)
-
+  
   useEffect(() => {
     setRoomCode(Math.floor(100000 + Math.random() * 900000).toString())
+    //context code here
   }, [])
 
   const handleCopy = async () => {

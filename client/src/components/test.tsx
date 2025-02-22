@@ -3,24 +3,24 @@ import { useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 
 // Connect to YOUR server
-const socket: Socket = io("https://bmh7d6sg-5000.inc1.devtunnels.ms/");
+const socket: Socket = io("https://keyedin.onrender.com");
 
 export default function Chat() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<string[]>([]);
   const [from, setFrom] = useState<string>("");
-  const myUserId = "Asil";
-  const myPublicKey = "User1PublicKey";
+  const myUserId = "Sreyas";
+  //const myPublicKey = "User1PublicKey";
 
   useEffect(() => {
     // Register on connect
-    socket.emit("register", { userId: myUserId, publicKey: myPublicKey });
+    socket.emit("register", { userId: myUserId});
 
     // Handle incoming messages correctly
     socket.on("private message", (data: { from: string; message: string }) => {
-      setMessages((prev) => [...prev, data.message]);
-      setFrom(data.from);
-      console.log(`Received from ${data.from}: ${data.message}`);
+      //setMessages((prev) => [...prev, data.message]);
+      //setFrom(data.from);
+      //console.log(`Received from ${data.from}: ${data.message}`);
     });
 
     return () => {
@@ -32,7 +32,7 @@ export default function Chat() {
     if (message.trim()) {
       // Send to a VALID recipient (e.g., "user2")
       socket.emit("private message", { to: "Abhay", message });
-      setMessage("");
+      //setMessage("");
     }
   };
 

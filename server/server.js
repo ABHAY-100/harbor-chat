@@ -1,48 +1,50 @@
 const express = require("express");
-const http = require("http");
+const { createServer } = require("http");
 const { Server } = require("socket.io");
+const cors = require("cors");
 
+// Setup Express
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: "http://localhost:3000" }, // Match your client's origin
+app.use(cors());
+
+// Create HTTP Server
+const httpServer = createServer(app);
+
+// Setup Socket.io
+const io = new Server(httpServer, {
+    cors: {
+        origin: "http://localhost:3000",
+        methods: ["GET", "POST"],
+    },
 });
 
-// Store users: { [userId]: { socketId, publicKey } }
-const users = {};
-
+// WebSocket Logic
 io.on("connection", (socket) => {
-  console.log(`User connected: ${socket.id}`);
+    console.log(`User connected: ${socket.id}`);
 
-  // Register user with ID and publicKey
-  socket.on("register", ({ userId, publicKey }) => {
-    users[userId] = { socketId: socket.id, publicKey };
-    socket.userId = userId; // Attach userId to socket
-    console.log(`Registered user: ${userId}`);
-  });
+    // Join the room when client registers
+    socket.on("register", (data) => {
+        socket.join(data.roomId);
+        console.log(`User ${data.userId} joined room ${data.roomId}`);
+    });
 
-  // Handle private messages
-  socket.on("private message", ({ to, message }) => {
-    const recipient = users[to]; // Correct: Lookup in users map
-    if (recipient) {
-      io.to(recipient.socketId).emit("private message", {
-        from: socket.userId,
-        message,
-      });
-      console.log(`Message from ${socket.userId} to ${to}: ${message}`);
-    } else {
-      console.log(`User ${to} not found.`);
-    }
-  });
+    // Handle room-specific messages
+    socket.on("room message", (data) => {
+        console.log(`Message received in room ${data.roomId}: ${data.message}`);
+        // Broadcast to all in the room except sender
+        socket.to(data.roomId).emit("room message", {
+            from: socket.id,
+            message: data.message
+        });
+    });
 
-  // Cleanup on disconnect
-  socket.on("disconnect", () => {
-    console.log(`User disconnected: ${socket.id}`);
-    if (socket.userId) delete users[socket.userId];
-  });
+    socket.on("disconnect", () => {
+        console.log(`User disconnected: ${socket.id}`);
+    });
 });
 
+// Start Server
 const PORT = 5000;
-server.listen(PORT, () =>
-  console.log(`Server running on http://localhost:${PORT}`)
-);
+httpServer.listen(PORT, () => {
+    console.log(`WebSocket server running on http://localhost:${PORT}`);
+});
