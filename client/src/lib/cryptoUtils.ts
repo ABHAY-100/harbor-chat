@@ -1,69 +1,119 @@
-export const generateKeyPair = async () => {
+const isBrowser = typeof window !== 'undefined';
+
+const checkCryptoSupport = () => {
+  if (!isBrowser || !window.crypto || !window.crypto.subtle) {
+    throw new Error('Web Crypto API is not supported in this environment');
+  }
+};
+
+interface KeyPair {
+  publicKey: CryptoKey;
+  privateKey: CryptoKey;
+}
+
+// Generates RSA-OAEP key pair for asymmetric encryption
+const generateKeyPair = async (): Promise<CryptoKeyPair> => {
+  return await window.crypto.subtle.generateKey(
+    {
+      name: 'RSA-OAEP',
+      modulusLength: 2048,
+      publicExponent: new Uint8Array([1, 0, 1]),
+      hash: 'SHA-256'
+    },
+    true, // extractable
+    ['encrypt', 'decrypt']
+  );
+};
+
+// Store keys in session storage
+const storeKeys = async (keyPair: CryptoKeyPair) => {
+  const exportedPublicKey = await window.crypto.subtle.exportKey('spki', keyPair.publicKey);
+  const exportedPrivateKey = await window.crypto.subtle.exportKey('pkcs8', keyPair.privateKey);
+  
+  const timestamp = Date.now();
+  sessionStorage.setItem('keyedin_publickey', btoa(String.fromCharCode(...new Uint8Array(exportedPublicKey))));
+  sessionStorage.setItem('keyedin_privatekey', btoa(String.fromCharCode(...new Uint8Array(exportedPrivateKey))));
+  sessionStorage.setItem('keyedin_timestamp', timestamp.toString());
+};
+
+const shouldRotateKeys = (): boolean => {
+  const timestamp = sessionStorage.getItem('keyedin_timestamp');
+  if (!timestamp) return true;
+
+  const keyAge = Date.now() - parseInt(timestamp, 10);
+  return keyAge > 24 * 60 * 60 * 1000;
+};
+
+// Retrieve keys from storage
+const getKeysFromStorage = async (): Promise<KeyPair | null> => {
+  const publicKeyString = sessionStorage.getItem('keyedin_publickey');
+  const privateKeyString = sessionStorage.getItem('keyedin_privatekey');
+  
+  if (!publicKeyString || !privateKeyString) return null;
+
   try {
-    const keyPair = await crypto.subtle.generateKey(
+    const publicKeyData = Uint8Array.from(atob(publicKeyString), c => c.charCodeAt(0));
+    const privateKeyData = Uint8Array.from(atob(privateKeyString), c => c.charCodeAt(0));
+    
+    const publicKey = await window.crypto.subtle.importKey(
+      'spki',
+      publicKeyData,
       {
-        name: "RSA-OAEP",
-        modulusLength: 4096,
-        publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
-        hash: "SHA-256",
+        name: 'RSA-OAEP',
+        hash: 'SHA-256'
       },
       true,
-      ["encrypt", "decrypt"]
+      ['encrypt']
     );
-    return keyPair;
+
+    const privateKey = await window.crypto.subtle.importKey(
+      'pkcs8',
+      privateKeyData,
+      {
+        name: 'RSA-OAEP',
+        hash: 'SHA-256'
+      },
+      true,
+      ['decrypt']
+    );
+
+    return { publicKey, privateKey };
   } catch (error) {
-    console.error("Error generating key pair:", error);
-    throw error;
+    console.error('Error importing keys:', error);
+    return null;
   }
 };
 
-export const exportPublicKey = async (keyPair: CryptoKeyPair) => {
-  const exported = await crypto.subtle.exportKey("spki", keyPair.publicKey);
-  const exportedAsBase64 = btoa(String.fromCharCode(...new Uint8Array(exported)));
-  return `-----BEGIN PUBLIC KEY-----\n${exportedAsBase64}\n-----END PUBLIC KEY-----`;
-};
-
-export const exportPrivateKey = async (keyPair: CryptoKeyPair) => {
-  const exported = await crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
-  const exportedAsBase64 = btoa(String.fromCharCode(...new Uint8Array(exported)));
-  return `-----BEGIN PRIVATE KEY-----\n${exportedAsBase64}\n-----END PRIVATE KEY-----`;
-};
-
-const PRIVATE_KEY_COOKIE = 'private_key';
-const PUBLIC_KEY_COOKIE = 'public_key';
-
-export const setCookie = (name: string, value: string) => {
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/`;
-};
-
-export const getCookie = (name: string) => {
-  const cookies = document.cookie.split(';');
-  for (const cookie of cookies) {
-    const [cookieName, cookieValue] = cookie.split('=').map(c => c.trim());
-    if (cookieName === name) {
-      return decodeURIComponent(cookieValue);
-    }
-  }
-  return null;
-};
-
-export const generateAndStoreKeys = async () => {
-  const existingPrivateKey = getCookie(PRIVATE_KEY_COOKIE);
-  const existingPublicKey = getCookie(PUBLIC_KEY_COOKIE);
-  
-  if (existingPrivateKey && existingPublicKey) {
-    return {
-      privateKey: existingPrivateKey,
-      publicKey: existingPublicKey
-    };
-  }
-
+export const generateAndStoreKeys = async (): Promise<KeyPair> => {
+  checkCryptoSupport();
   const keyPair = await generateKeyPair();
-  const publicKey = await exportPublicKey(keyPair);
-  const privateKey = await exportPrivateKey(keyPair);
-
-  setCookie(PRIVATE_KEY_COOKIE, privateKey);
-  setCookie(PUBLIC_KEY_COOKIE, publicKey);
-
-  return { privateKey, publicKey };
+  await storeKeys(keyPair);
+  return keyPair;
 };
+
+export const checkAndRotateKeys = async (): Promise<KeyPair> => {
+  if (shouldRotateKeys()) {
+    cleanupKeys();
+    return await generateAndStoreKeys();
+  }
+
+  const existingKeys = await getKeysFromStorage();
+  if (!existingKeys) {
+    return await generateAndStoreKeys();
+  }
+
+  return existingKeys;
+};
+
+export const cleanupKeys = () => {
+  sessionStorage.removeItem('keyedin_privatekey');
+  sessionStorage.removeItem('keyedin_publickey');
+  sessionStorage.removeItem('keyedin_timestamp');
+};
+
+if (isBrowser) {
+  window.addEventListener('load', () => {
+    checkAndRotateKeys().catch(console.error);
+  });
+  window.addEventListener('unload', cleanupKeys);
+}

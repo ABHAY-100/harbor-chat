@@ -21,6 +21,7 @@ type Message = {
 
 // ChatClient Component
 function ChatClient({ roomId }: { roomId: string }) {
+  /** WebSocket connection to chat server */
   const socket: Socket = io("https://bmh7d6sg-5000.inc1.devtunnels.ms/");
 
   const router = useRouter();
@@ -30,6 +31,7 @@ function ChatClient({ roomId }: { roomId: string }) {
   const myUserId = "Sreyas";
 
   useEffect(() => {
+<<<<<<< Updated upstream
     // Register on connect with roomId
 
     socket.emit("register", { userId: myUserId, roomId });
@@ -48,12 +50,32 @@ function ChatClient({ roomId }: { roomId: string }) {
         ]);
       }
       console.log(`Received from ${data.from}: ${data.message}`);
+=======
+    /** Initialize WebSocket connection and room registration */
+    socket.emit("register", { userId: myUserId, roomId });
+
+    /** Handle incoming messages and update UI */
+    socket.on("room message", (data: { from: string; message: string }) => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          text: data.message,
+          sender: data.from === myUserId ? "user" : "other",
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+>>>>>>> Stashed changes
     });
 
     return () => {
-      socket.off("room message");
+      socket.off("room message"); // Cleanup socket listener
     };
+<<<<<<< Updated upstream
   }); // Add roomId as a dependency
+=======
+  }, [roomId]);
+>>>>>>> Stashed changes
 
   const handleSend = () => {
     if (message.trim()) {
@@ -78,6 +100,7 @@ function ChatClient({ roomId }: { roomId: string }) {
     }
   };
 
+  /** Auto-scroll chat to bottom when new messages arrive */
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -184,14 +207,15 @@ function ChatClient({ roomId }: { roomId: string }) {
   );
 }
 
-// ChatPage Component
+/**
+ * Main chat page component that unwraps the roomId from URL params
+ * and renders the ChatClient
+ */
 export default function ChatPage({
   params,
 }: {
   params: Promise<{ roomId: string }>;
 }) {
-  // Use React.use() to unwrap the Promise
   const { roomId } = use(params);
-
   return <ChatClient roomId={roomId} />;
 }

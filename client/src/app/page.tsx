@@ -1,15 +1,26 @@
-"use client"
+"use client";
 
-import { useEffect } from 'react';
-import { generateAndStoreKeys } from '@/lib/cryptoUtils';
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import Link from "next/link"
-import { motion } from "framer-motion"
+import { useEffect } from "react";
+import { generateAndStoreKeys } from "@/lib/cryptoUtils";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { motion } from "framer-motion";
 
 export default function HomePage() {
+  /** Generate and store encryption keys on first visit */
   useEffect(() => {
-    generateAndStoreKeys().catch(console.error);
+    const initKeys = async () => {
+      try {
+        await generateAndStoreKeys();
+      } catch (error) {
+        console.error("Failed to generate keys:", error);
+        toast.error("Failed to initialize encryption. Please refresh the page.");
+      }
+    };
+
+    initKeys();
   }, []);
 
   return (
@@ -22,9 +33,12 @@ export default function HomePage() {
       >
         <Card className="border-2 pt-[12px]">
           <CardHeader>
-            <CardTitle className="text-center text-3xl font-semibold">Welcome to KeyedIn</CardTitle>
+            <CardTitle className="text-center text-3xl font-semibold">
+              Welcome to KeyedIn
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 p-6">
+            {/* Create Room Button with animation */}
             <motion.div whileHover={{ scale: 1.0 }} whileTap={{ scale: 0.98 }}>
               <Link href="/create-room" className="w-full">
                 <Button className="w-full text-lg py-8 space-x-4" size="lg">
@@ -32,9 +46,14 @@ export default function HomePage() {
                 </Button>
               </Link>
             </motion.div>
+            {/* Join Room Button with animation */}
             <motion.div whileHover={{ scale: 1.0 }} whileTap={{ scale: 0.98 }}>
               <Link href="/join-room" className="w-full">
-                <Button variant="outline" className="w-full text-lg py-8 space-x-4" size="lg">
+                <Button
+                  variant="outline"
+                  className="w-full text-lg py-8 space-x-4"
+                  size="lg"
+                >
                   <span>Join Room</span>
                 </Button>
               </Link>
@@ -43,5 +62,5 @@ export default function HomePage() {
         </Card>
       </motion.div>
     </div>
-  )
+  );
 }
