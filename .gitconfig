@@ -1,0 +1,5 @@
+[core]
+    # Converts line endings between Windows/Unix systems
+    autocrlf = true
+    # Forces Unix-style line endings for consistency
+    eol = lf
