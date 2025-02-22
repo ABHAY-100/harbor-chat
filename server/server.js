@@ -1,49 +1,53 @@
 const express = require("express");
-const { createServer } = require("http");
+const http = require("http");
 const { Server } = require("socket.io");
-const cors = require("cors");
 
-// Setup Express
 const app = express();
-app.use(cors());
-
-// Create HTTP Server for WebSockets
-const httpServer = createServer(app);
-
-// Setup Socket.io
-const io = new Server(httpServer, {
-    cors: {
-        origin: "http://localhost:3000",
-        methods: ["GET", "POST"],
-    },
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: "http://localhost:3000" },
 });
+
+// In-memory mapping of user IDs to their socket info (including publicKey)
+const users = {};
 
 io.on("connection", (socket) => {
-    console.log(`User connected: ${socket.id}`);
+  console.log(`User connected: ${socket.id}`);
 
-    // Listen for a user joining a room
-    socket.on("joinRoom", (room) => {
-        socket.join(room);
-        console.log(`User ${socket.id} joined room: ${room}`);
-        // Optionally, notify others in the room
-        socket.to(room).emit("notification", `User ${socket.id} has joined.`);
-    });
+  // Client registers with their userId and publicKey
+  socket.on("register", ({ userId, publicKey }) => {
+    users[userId] = { socketId: socket.id, publicKey };
+    socket.userId = userId; // store on socket for later use
+    console.log(`Registered user: ${userId}`);
+  });
 
-    // Listen for room-specific messages
-    socket.on("roomMessage", ({ room, msg }) => {
-        // Since we're using PGP encryption, 'msg' should already be encrypted on the client side.
-        console.log(`Encrypted message in room ${room} from ${socket.id}: ${msg}`);
-        // Relay the encrypted message to everyone else in the room
-        socket.to(room).emit("roomMessage", { sender: socket.id, msg });
-    });
+  // Listen for a private message from a sender.
+  // The sender sends: { to: recipientUserId, message: encryptedMessage }
+  socket.on("private message", ({ to, message }) => {
+    const recipient = to;
+    console.log(recipient)
+    if (recipient) {
+      io.to(recipient.socketId).emit("private message", {
+        from: socket.userId,
+        message,
+      });
+      console.log(
+        `Message from ${socket.userId} forwarded to ${to}: ${message}`
+      );
+    } else {
+      console.log(`User ${to} not found or not connected.`);
+    }
+  });
 
-    socket.on("disconnect", () => {
-        console.log(`User disconnected: ${socket.id}`);
-    });
+  socket.on("disconnect", () => {
+    console.log(`User disconnected: ${socket.id}`);
+    if (socket.userId) {
+      delete users[socket.userId];
+    }
+  });
 });
 
-// Start Server
 const PORT = 5000;
-httpServer.listen(PORT, () => {
-    console.log(`WebSocket server running on http://localhost:${PORT}`);
-});
+server.listen(PORT, () =>
+  console.log(`Socket.IO server running on http://localhost:${PORT}`)
+);
