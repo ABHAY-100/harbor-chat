@@ -1,58 +1,61 @@
-"use client"
+"use client";
 import { useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 
-const socket: Socket = io("http://localhost:5000");
+// Connect to YOUR server
+const socket: Socket = io("https://bmh7d6sg-5000.inc1.devtunnels.ms/");
 
 export default function Chat() {
-    const [message, setMessage] = useState("");
-    const [messages, setMessages] = useState<string[]>([]);
-    const [from, setFrom] = useState<string>();
-    const [messagesUser2, setMessagesUser2] = useState<string>();
-    const myUserId = "user1";
-    const myPublicKey = "User1PublicKey";    // used by others to encrypt messages to you
-    const myPrivateKey = "User1PrivateKey";  // used to decrypt received messages
-    
-    socket.emit("register" , { userId: myUserId, publicKey: myPublicKey })
-    useEffect(() => {
-        socket.on("private message", (from : string , message: string) => {
-            setMessages((prev) => [...prev, message]);
-            console.log(`recieveed from ${from}`)
-            setFrom(from)
-            setMessagesUser2(message)
-        });
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<string[]>([]);
+  const [from, setFrom] = useState<string>("");
+  const myUserId = "Asil";
+  const myPublicKey = "User1PublicKey";
 
-        return () => {
-            socket.off("private message");
-        };
-    }, []);
+  useEffect(() => {
+    // Register on connect
+    socket.emit("register", { userId: myUserId, publicKey: myPublicKey });
 
-    const sendMessage = () => {
-        if (message.trim()) {
-            socket.emit("private message", {to : "Abhay" , message : message});
-            setMessage("");
-        console.log(from)
-        }
+    // Handle incoming messages correctly
+    socket.on("private message", (data: { from: string; message: string }) => {
+      setMessages((prev) => [...prev, data.message]);
+      setFrom(data.from);
+      console.log(`Received from ${data.from}: ${data.message}`);
+    });
+
+    return () => {
+      socket.off("private message");
     };
+  }, []);
 
-    return (
-        <div>
-            <h2>Chat</h2>
-            <input
-                type="text"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-            />
-            <button onClick={sendMessage} >Send</button>
-        
-            <ul>
-                {messages.map((msg, index) => (
-                    <li key={index}>{msg}</li>
-                ))}
-                
+  const sendMessage = () => {
+    if (message.trim()) {
+      // Send to a VALID recipient (e.g., "user2")
+      socket.emit("private message", { to: "Abhay", message });
+      setMessage("");
+    }
+  };
 
-            </ul>
-            <p>{from} {messagesUser2}</p>
-        </div>
-    );
+  return (
+    <div>
+      <h2>Chat (User: {myUserId})</h2>
+      <input
+        type="text"
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder="Type a message"
+      />
+      <button onClick={sendMessage}>Send</button>
+
+      <div>
+        <h3>Messages:</h3>
+        <ul>
+          {messages.map((msg, index) => (
+            <li key={index}>{msg}</li>
+          ))}
+        </ul>
+        {from && <p>Last message from: {from}</p>}
+      </div>
+    </div>
+  );
 }
