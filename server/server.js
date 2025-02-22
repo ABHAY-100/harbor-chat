@@ -1,4 +1,3 @@
-// hi
 const express = require("express");
 const { createServer } = require("http");
 const { Server } = require("socket.io");
@@ -19,13 +18,23 @@ const io = new Server(httpServer, {
     },
 });
 
-// WebSocket Logic
 io.on("connection", (socket) => {
     console.log(`User connected: ${socket.id}`);
 
-    socket.on("message", (msg) => {
-        console.log(`Message received:${socket.id} ${msg}`);
-        io.emit("message", msg);
+    // Listen for a user joining a room
+    socket.on("joinRoom", (room) => {
+        socket.join(room);
+        console.log(`User ${socket.id} joined room: ${room}`);
+        // Optionally, notify others in the room
+        socket.to(room).emit("notification", `User ${socket.id} has joined.`);
+    });
+
+    // Listen for room-specific messages
+    socket.on("roomMessage", ({ room, msg }) => {
+        // Since we're using PGP encryption, 'msg' should already be encrypted on the client side.
+        console.log(`Encrypted message in room ${room} from ${socket.id}: ${msg}`);
+        // Relay the encrypted message to everyone else in the room
+        socket.to(room).emit("roomMessage", { sender: socket.id, msg });
     });
 
     socket.on("disconnect", () => {
