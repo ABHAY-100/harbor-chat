@@ -22,45 +22,57 @@ type Message = {
 // ChatClient Component
 function ChatClient({ roomId }: { roomId: string }) {
   /** WebSocket connection to chat server */
-  const socket: Socket = io("https://bmh7d6sg-5000.inc1.devtunnels.ms/");
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   const router = useRouter();
   const [message, setMessage] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const myUserId = sessionStorage.getItem('keyedin_publickey');
-  
+  const myUserId = sessionStorage.getItem("keyedin_publickey") || "";
+
   useEffect(() => {
+    const socket: Socket = io("https://bmh7d6sg-5000.inc1.devtunnels.ms/");
+    setSocket(socket);
     // Register on connect with roomId
 
     socket.emit("register", { userId: myUserId, roomId });
 
     // Handle incoming messages from the room
-    socket.on("room message", (data: { from: string; message: string, sender: string }) => {
-      if (data.sender != socket.id) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: Date.now(),
-            text: data.message,
-            sender: data.from === myUserId ? "user" : "other", // Determine sender
-            timestamp: new Date().toISOString(),
-          },
-        ]);
+    socket.on(
+      "room message",
+      (data: { from: string; message: string; sender: string }) => {
+        console.log(
+          "message received:",
+          socket.id,
+          data.sender,
+          data.sender === socket.id
+        );
+        if (data.sender != socket.id) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: Date.now(),
+              text: data.message,
+              sender: data.from === myUserId ? "user" : "other", // Determine sender
+              timestamp: new Date().toISOString(),
+            },
+          ]);
+        }
+        console.log(`Received from ${data.from}: ${data.message}`);
       }
-      console.log(`Received from ${data.from}: ${data.message}`);
-    });
+    );
 
     return () => {
       socket.off("room message"); // Cleanup socket listener
     };
-}, [roomId]);
+  }, [roomId]);
 
   const handleSend = () => {
+    console.log("message sent");
     if (message.trim()) {
       // Emit the message to the room
-      console.log("emited from ", socket.id);
-      socket.emit("room message", { roomId, message, sender: socket.id });
+      console.log("emited from ", socket?.id);
+      socket?.emit("room message", { roomId, message, sender: socket.id });
 
       // Add the message to the local state
       setMessages((prev) => [
