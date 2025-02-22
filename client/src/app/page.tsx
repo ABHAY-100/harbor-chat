@@ -1,12 +1,17 @@
 "use client"
 
+import { useEffect } from 'react';
+import { generateAndStoreKeys } from '@/lib/cryptoUtils';
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-// import { MessageSquare, Users } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 
 export default function HomePage() {
+  useEffect(() => {
+    generateAndStoreKeys().catch(console.error);
+  }, []);
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-black from-background to-muted py-[120px]">
       <motion.div
@@ -23,7 +28,6 @@ export default function HomePage() {
             <motion.div whileHover={{ scale: 1.0 }} whileTap={{ scale: 0.98 }}>
               <Link href="/create-room" className="w-full">
                 <Button className="w-full text-lg py-8 space-x-4" size="lg">
-                  {/* <Users className="w-6 h-6" /> */}
                   <span>Create Room</span>
                 </Button>
               </Link>
@@ -31,7 +35,6 @@ export default function HomePage() {
             <motion.div whileHover={{ scale: 1.0 }} whileTap={{ scale: 0.98 }}>
               <Link href="/join-room" className="w-full">
                 <Button variant="outline" className="w-full text-lg py-8 space-x-4" size="lg">
-                  {/* <MessageSquare className="w-6 h-6" /> */}
                   <span>Join Room</span>
                 </Button>
               </Link>
