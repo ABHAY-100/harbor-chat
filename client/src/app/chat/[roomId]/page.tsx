@@ -28,10 +28,9 @@ function ChatClient({ roomId }: { roomId: string }) {
   const [message, setMessage] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const myUserId = "Sreyas";
+  const myUserId = sessionStorage.getItem('keyedin_publickey');
 
   useEffect(() => {
-<<<<<<< Updated upstream
     // Register on connect with roomId
 
     socket.emit("register", { userId: myUserId, roomId });
@@ -50,32 +49,12 @@ function ChatClient({ roomId }: { roomId: string }) {
         ]);
       }
       console.log(`Received from ${data.from}: ${data.message}`);
-=======
-    /** Initialize WebSocket connection and room registration */
-    socket.emit("register", { userId: myUserId, roomId });
-
-    /** Handle incoming messages and update UI */
-    socket.on("room message", (data: { from: string; message: string }) => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          text: data.message,
-          sender: data.from === myUserId ? "user" : "other",
-          timestamp: new Date().toISOString(),
-        },
-      ]);
->>>>>>> Stashed changes
     });
 
     return () => {
       socket.off("room message"); // Cleanup socket listener
     };
-<<<<<<< Updated upstream
-  }); // Add roomId as a dependency
-=======
-  }, [roomId]);
->>>>>>> Stashed changes
+}, [roomId]);
 
   const handleSend = () => {
     if (message.trim()) {

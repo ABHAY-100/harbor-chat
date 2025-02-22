@@ -41,7 +41,7 @@ const shouldRotateKeys = (): boolean => {
   if (!timestamp) return true;
 
   const keyAge = Date.now() - parseInt(timestamp, 10);
-  return keyAge > 24 * 60 * 60 * 1000;
+  return keyAge > 1 * 60 * 60 * 1000;
 };
 
 // Retrieve keys from storage
