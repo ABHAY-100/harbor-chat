@@ -31,31 +31,35 @@ function ChatClient({ roomId }: { roomId: string }) {
 
   useEffect(() => {
     // Register on connect with roomId
+
     socket.emit("register", { userId: myUserId, roomId });
 
     // Handle incoming messages from the room
-    socket.on("room message", (data: { from: string; message: string }) => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          text: data.message,
-          sender: data.from === myUserId ? "user" : "other", // Determine sender
-          timestamp: new Date().toISOString(),
-        },
-      ]);
+    socket.on("room message", (data: { from: string; message: string, sender: string }) => {
+      if (data.sender != socket.id) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now(),
+            text: data.message,
+            sender: data.from === myUserId ? "user" : "other", // Determine sender
+            timestamp: new Date().toISOString(),
+          },
+        ]);
+      }
       console.log(`Received from ${data.from}: ${data.message}`);
     });
 
     return () => {
       socket.off("room message");
     };
-  }, [roomId]); // Add roomId as a dependency
+  }); // Add roomId as a dependency
 
   const handleSend = () => {
     if (message.trim()) {
       // Emit the message to the room
-      socket.emit("room message", { roomId, message });
+      console.log("emited from ", socket.id);
+      socket.emit("room message", { roomId, message, sender: socket.id });
 
       // Add the message to the local state
       setMessages((prev) => [
@@ -69,6 +73,7 @@ function ChatClient({ roomId }: { roomId: string }) {
       ]);
 
       // Clear the input
+      console.log(messages);
       setMessage("");
     }
   };

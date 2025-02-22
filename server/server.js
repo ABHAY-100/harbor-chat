@@ -32,7 +32,9 @@ io.on("connection", (socket) => {
     socket.on("room message", (data) => {
         console.log(`Message received in room ${data.roomId}: ${data.message}`);
         // Broadcast to all in the room except sender
+        console.log(data.sender)
         socket.to(data.roomId).emit("room message", {
+            sender: data.sender,
             from: socket.id,
             message: data.message
         });
@@ -46,5 +48,5 @@ io.on("connection", (socket) => {
 // Start Server
 const PORT = 5000;
 httpServer.listen(PORT, () => {
-    console.log(`WebSocket server running on http://localhost:${PORT}`);
+    console.log(`WebSocket server running`);
 });
